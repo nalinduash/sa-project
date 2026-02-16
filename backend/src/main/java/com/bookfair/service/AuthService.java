@@ -57,7 +57,7 @@ public class AuthService {
         }
 
         User user = User.builder()
-                .email(email)
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .businessName(request.getBusinessName())
                 .contactPerson(request.getContactPerson())
@@ -68,12 +68,10 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), userType.name());
-
-        log.info("AUTH_REGISTER_SUCCESS email={} type={}", user.getEmail(), userType.name());
+        String token = jwtUtil.generateToken(user.getEmail(), userType.name());
 
         return AuthResponse.builder()
-                .token(accessToken)
+                .token(token)
                 .email(user.getEmail())
                 .userType(userType.name())
                 .businessName(user.getBusinessName())
@@ -81,28 +79,17 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        validateLogin(request);
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+        );
 
-        String email = request.getEmail().trim().toLowerCase();
-
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
-            );
-        } catch (Exception e) {
-            log.warn("AUTH_LOGIN_FAIL email={}", email);
-            throw e;
-        }
-
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getUserType().name());
-
-        log.info("AUTH_LOGIN_SUCCESS email={} type={}", user.getEmail(), user.getUserType().name());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getUserType().name());
 
         return AuthResponse.builder()
-                .token(accessToken)
+                .token(token)
                 .email(user.getEmail())
                 .userType(user.getUserType().name())
                 .businessName(user.getBusinessName())
