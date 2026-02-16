@@ -5,7 +5,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,8 +13,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -38,11 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthFilter jwtAuthFilter;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final JwtAuthFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
@@ -53,6 +49,11 @@ public class SecurityConfig {
     @Value("${security.ratelimit.windowSeconds:60}")
     private int rateLimitWindowSeconds;
 
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, UserDetailsService userDetailsService) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.userDetailsService = userDetailsService;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -60,10 +61,9 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 
     @Bean
@@ -79,6 +79,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Refresh-Token"));
         configuration.setExposedHeaders(Arrays.asList("X-Refresh-Token"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -95,21 +96,29 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // Public auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/auth/password/**").permitAll()
 
+                        // Role based
                         .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
                         .requestMatchers("/api/reservations/**").hasRole("VENDOR")
                         .requestMatchers("/api/genres/**").hasRole("VENDOR")
 
                         .requestMatchers(HttpMethod.GET, "/api/stalls/**").hasAnyRole("VENDOR", "EMPLOYEE")
 
+                        // Everything else
                         .anyRequest().authenticated()
                 )
+
                 .authenticationProvider(authenticationProvider())
+
+                // Order matters: rate-limit first, then JWT
                 .addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
