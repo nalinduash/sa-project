@@ -1,5 +1,5 @@
 package com.bookfair.repository;
-//Dummy
+
 import com.bookfair.model.Genre;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -9,31 +9,25 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Collections;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
-
+    
     @Autowired
     private UserRepository userRepository;
-
+    
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        if (email == null || email.trim().isEmpty()) {
-            throw new UsernameNotFoundException("Email is required");
-        }
-
-        String normalized = email.trim().toLowerCase();
-
-        User user = userRepository.findByEmail(normalized)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalized));
-
-        String role = "ROLE_" + user.getUserType().name();
-
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .authorities(List.of(new SimpleGrantedAuthority(role)))
-                .build();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        
+        String role = user.getUserType() == User.UserType.EMPLOYEE ? "EMPLOYEE" : "VENDOR";
+        
+        return new org.springframework.security.core.userdetails.User(
+            user.getEmail(),
+            user.getPassword(),
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+        );
     }
 }

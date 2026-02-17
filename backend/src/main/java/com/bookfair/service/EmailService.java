@@ -10,23 +10,27 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
-
+    
     @Autowired
     private JavaMailSender mailSender;
-
+    
     @Value("${spring.mail.username:noreply@bookfair.lk}")
     private String fromEmail;
-
-    public void sendReservationConfirmation(String toEmail, String businessName,
-                                            String stallCode, String stallSize, String qrCode) {
+    
+    public JavaMailSender getMailSender() {
+        return mailSender;
+    }
+    
+    public void sendReservationConfirmation(String toEmail, String businessName, 
+                                           String stallCode, String stallSize, String qrCode) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
+            
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
             helper.setSubject("Colombo International Book Fair - Stall Reservation Confirmed");
-
+            
             StringBuilder html = new StringBuilder();
             html.append("<html><body style='font-family: Arial, sans-serif;'>");
             html.append("<h2>Stall Reservation Confirmation</h2>");
@@ -42,10 +46,10 @@ public class EmailService {
             html.append("<img src='data:image/png;base64,").append(qrCode).append("' alt='QR Code' style='margin-top: 20px;'/>");
             html.append("<p style='margin-top: 30px;'>Best regards,<br/>Colombo International Book Fair Team</p>");
             html.append("</body></html>");
-
+            
             helper.setText(html.toString(), true);
             mailSender.send(message);
-
+            
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
         }

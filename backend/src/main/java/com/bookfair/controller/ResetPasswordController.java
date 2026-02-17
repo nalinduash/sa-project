@@ -1,5 +1,7 @@
 package com.bookfair.controller;
 
+import com.bookfair.dto.ForgotPasswordRequest;
+import com.bookfair.dto.ResetPasswordRequest;
 import com.bookfair.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +18,14 @@ public class ResetPasswordController {
     private AuthService authService;
 
     @PostMapping("/forgot")
-    public ResponseEntity<?> forgot(@RequestBody Map<String, String> body) {
-        authService.forgotPassword(body.get("email"));
+    public ResponseEntity<?> forgot(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok(Map.of("message", "If the email exists, a reset token was sent"));
     }
 
     @PostMapping("/reset")
-    public ResponseEntity<?> reset(@RequestBody Map<String, String> body) {
-        authService.resetPassword(body.get("token"), body.get("newPassword"));
+    public ResponseEntity<?> reset(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password reset successful"));
     }
 }

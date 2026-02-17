@@ -13,10 +13,10 @@ import java.util.List;
 @RequestMapping("/api/reservations")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ReservationController {
-
+    
     @Autowired
     private ReservationService reservationService;
-
+    
     @PostMapping
     public ResponseEntity<List<ReservationResponse>> createReservation(
             @RequestBody ReservationRequest request,
@@ -24,7 +24,7 @@ public class ReservationController {
         String email = authentication.getName();
         return ResponseEntity.ok(reservationService.createReservations(email, request));
     }
-
+    
     @GetMapping("/my-reservations")
     public ResponseEntity<List<ReservationResponse>> getMyReservations(Authentication authentication) {
         String email = authentication.getName();
