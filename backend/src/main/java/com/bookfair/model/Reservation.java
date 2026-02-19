@@ -25,7 +25,7 @@ public class Reservation {
     @JoinColumn(name = "stall_id", nullable = false)
     private Stall stall;
     
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, columnDefinition = "TEXT")
     private String qrCode;
     
     @Column(nullable = false)
