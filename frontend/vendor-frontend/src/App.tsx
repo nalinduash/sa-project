@@ -32,7 +32,6 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
     </AuthProvider>
   );
 }
